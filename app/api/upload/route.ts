@@ -10,14 +10,7 @@ export async function POST(request: Request): Promise<NextResponse> {
       request,
       onBeforeGenerateToken: async () => {
         return {
-          allowedContentTypes: [
-            'image/jpeg',
-            'image/png',
-            'image/gif',
-            'image/webp',
-            'video/mp4',
-            'application/pdf',
-          ],
+          // Leaving allowedContentTypes empty allows ALL file types and extensions
         };
       },
       onUploadCompleted: async ({ blob }) => {
