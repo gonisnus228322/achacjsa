@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server';
+import fs from 'fs';
+import path from 'path';
 
 export interface ChatMessage {
   id: string;
@@ -11,9 +13,30 @@ export interface ChatMessage {
   timestamp: string;
 }
 
-let messages: ChatMessage[] = [];
+const FILE_PATH = path.join('/tmp', 'messages.json');
+
+function readMessages(): ChatMessage[] {
+  try {
+    if (!fs.existsSync(FILE_PATH)) {
+      return [];
+    }
+    const data = fs.readFileSync(FILE_PATH, 'utf-8');
+    return JSON.parse(data) || [];
+  } catch {
+    return [];
+  }
+}
+
+function writeMessages(messages: ChatMessage[]) {
+  try {
+    fs.writeFileSync(FILE_PATH, JSON.stringify(messages, null, 2), 'utf-8');
+  } catch (err) {
+    console.error('Failed to save messages to disk:', err);
+  }
+}
 
 export async function GET() {
+  const messages = readMessages();
   return NextResponse.json(messages);
 }
 
@@ -31,7 +54,10 @@ export async function POST(request: Request) {
       timestamp: new Date().toISOString(),
     };
 
-    messages.push(newMessage);
+    const currentMessages = readMessages();
+    currentMessages.push(newMessage);
+    writeMessages(currentMessages);
+
     return NextResponse.json(newMessage, { status: 201 });
   } catch {
     return NextResponse.json({ error: 'Failed to save message' }, { status: 500 });
@@ -47,7 +73,10 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: 'Missing message ID' }, { status: 400 });
     }
 
-    messages = messages.filter((msg) => msg.id !== id);
+    let currentMessages = readMessages();
+    currentMessages = currentMessages.filter((msg) => msg.id !== id);
+    writeMessages(currentMessages);
+
     return NextResponse.json({ success: true });
   } catch {
     return NextResponse.json({ error: 'Failed to delete message' }, { status: 500 });
