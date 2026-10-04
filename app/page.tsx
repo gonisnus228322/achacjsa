@@ -13,6 +13,7 @@ const USER_ACCOUNTS: Record<string, string> = {
 interface ChatMessage {
   id: string;
   username: string;
+  avatarUrl?: string;
   text: string;
   attachmentUrl?: string;
   attachmentType?: 'image' | 'video' | 'audio' | 'file';
@@ -26,10 +27,18 @@ export default function DiscordChat() {
   const [passwordInput, setPasswordInput] = useState<string>('');
   const [loginError, setLoginError] = useState<string | null>(null);
 
+  // User PFPs map
+  const [userAvatars, setUserAvatars] = useState<Record<string, string>>({});
+  const [showPfpModal, setShowPfpModal] = useState<boolean>(false);
+  const [pfpInput, setPfpInput] = useState<string>('');
+
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [text, setText] = useState<string>('');
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File null |>(null);
+
+  // Upload Progress State
   const [isUploading, setIsUploading] = useState<boolean>(false);
+  const [uploadProgress, setUploadProgress] = useState<number>(0);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -53,7 +62,7 @@ export default function DiscordChat() {
   useEffect(() => {
     if (currentUser) {
       fetchMessages();
-      const interval = setInterval(fetchMessages, 2500);
+      const interval = setInterval(fetchMessages, 2000);
       return () => clearInterval(interval);
     }
   }, [currentUser]);
@@ -96,11 +105,14 @@ export default function DiscordChat() {
     return 'file';
   };
 
+  // Fast direct client upload with live percentage progress tracking
   const handleSendMessage = async (e: FormEvent) => {
     e.preventDefault();
     if (!text.trim() && !selectedFile) return;
 
     setIsUploading(true);
+    setUploadProgress(0);
+
     let attachmentUrl = '';
     let attachmentType: 'image' | 'video' | 'audio' | 'file' | undefined = undefined;
     let attachmentName = '';
@@ -110,18 +122,25 @@ export default function DiscordChat() {
         attachmentType = getAttachmentType(selectedFile);
         attachmentName = selectedFile.name;
 
+        // Vercel Blob client upload with progress listener
         const blob = await upload(selectedFile.name, selectedFile, {
           access: 'public',
           handleUploadUrl: '/api/upload',
+          onUploadProgress: (progressEvent) => {
+            setUploadProgress(Math.round(progressEvent.percentage));
+          },
         });
         attachmentUrl = blob.url;
       }
+
+      const currentAvatar = currentUser ? userAvatars[currentUser] : '';
 
       const res = await fetch('/api/messages', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           username: currentUser,
+          avatarUrl: currentAvatar,
           text: text.trim(),
           attachmentUrl: attachmentUrl || undefined,
           attachmentType,
@@ -136,10 +155,33 @@ export default function DiscordChat() {
         await fetchMessages();
       }
     } catch (err) {
-      alert('Failed to send message/file.');
+      alert('Upload failed. Please check network and try again.');
     } finally {
       setIsUploading(false);
+      setUploadProgress(0);
     }
+  };
+
+  // Delete message function
+  const handleDeleteMessage = async (id: string) => {
+    try {
+      const res = await fetch(`/api/messages?id=${id}`, {
+        method: 'DELETE',
+      });
+      if (res.ok) {
+        setMessages((prev) => prev.filter((msg) => msg.id !== id));
+      }
+    } catch {
+      alert('Could not delete message.');
+    }
+  };
+
+  const saveProfilePicture = () => {
+    if (currentUser) {
+      setUserAvatars((prev) => ({ ...prev, [currentUser]: pfpInput.trim() }));
+    }
+    setShowPfpModal(false);
+    setPfpInput('');
   };
 
   if (!currentUser) {
@@ -153,7 +195,7 @@ export default function DiscordChat() {
         <form onSubmit={handleLogin} className="discord-login-card">
           <div className="login-header">
             <h2>Welcome Back</h2>
-            <p className="subtitle">Private Liquid Vault</p>
+            <p className="subtitle">Private Dark Blue Vault</p>
           </div>
 
           <div className="input-group">
@@ -193,6 +235,8 @@ export default function DiscordChat() {
     );
   }
 
+  const userPfp = userAvatars[currentUser];
+
   return (
     <div className="discord-app">
       <div className="liquid-bg-container">
@@ -213,10 +257,14 @@ export default function DiscordChat() {
         </div>
 
         <div className="user-profile-bar">
-          <div className="avatar">{currentUser[0].toUpperCase()}</div>
+          <div className="avatar">
+            {userPfp ? <img src={userPfp} alt="avatar" /> : currentUser[0].toUpperCase()}
+          </div>
           <div className="user-details">
             <span className="username">{currentUser}</span>
-            <span className="status-indicator">Online</span>
+            <button onClick={() => setShowPfpModal(true)} className="btn-change-pfp">
+              Change PFP
+            </button>
           </div>
           <button onClick={() => setCurrentUser(null)} className="btn-logout" title="Log Out">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -237,7 +285,9 @@ export default function DiscordChat() {
         <div className="messages-feed">
           {messages.map((msg) => (
             <div key={msg.id} className="message-row">
-              <div className="avatar msg-avatar">{msg.username[0].toUpperCase()}</div>
+              <div className="avatar msg-avatar">
+                {msg.avatarUrl ? <img src={msg.avatarUrl} alt="avatar" /> : msg.username[0].toUpperCase()}
+              </div>
               <div className="message-content-wrapper">
                 <div className="message-header">
                   <span className="msg-username">{msg.username}</span>
@@ -274,15 +324,37 @@ export default function DiscordChat() {
                   </div>
                 )}
               </div>
+
+              {/* Delete Message Button */}
+              <button
+                onClick={() => handleDeleteMessage(msg.id)}
+                className="btn-delete-msg"
+                title="Delete message"
+              >
+                Delete
+              </button>
             </div>
           ))}
           <div ref={messagesEndRef} />
         </div>
 
         <form onSubmit={handleSendMessage} className="chat-input-wrapper">
-          {selectedFile && (
+          {/* Upload Progress Bar */}
+          {isUploading && (
+            <div className="upload-progress-container">
+              <div className="upload-progress-header">
+                <span>Uploading {selectedFile?.name}...</span>
+                <span>{uploadProgress}%</span>
+              </div>
+              <div className="progress-bar-track">
+                <div className="progress-bar-fill" style={{ width: `${uploadProgress}%` }} />
+              </div>
+            </div>
+          )}
+
+          {!isUploading && selectedFile && (
             <div className="file-preview-strip">
-              <span className="file-preview-name">Attached: {selectedFile.name}</span>
+              <span className="file-preview-name">Ready: {selectedFile.name}</span>
               <button type="button" onClick={() => setSelectedFile(null)} className="btn-remove-file">
                 ✕
               </button>
@@ -297,7 +369,7 @@ export default function DiscordChat() {
               style={{ display: 'none' }}
               id="file-upload"
             />
-            <label htmlFor="file-upload" className="btn-attach" title="Attach file, image, or video">
+            <label htmlFor="file-upload" className="btn-attach" title="Attach file">
               +
             </label>
 
@@ -311,11 +383,35 @@ export default function DiscordChat() {
             />
 
             <button type="submit" disabled={isUploading || (!text.trim() && !selectedFile)} className="btn-send">
-              {isUploading ? 'Uploading...' : 'Send'}
+              {isUploading ? `${uploadProgress}%` : 'Send'}
             </button>
           </div>
         </form>
       </main>
+
+      {/* Change Profile Picture Modal */}
+      {showPfpModal && (
+        <div className="modal-overlay">
+          <div className="pfp-modal">
+            <h3>Change Profile Picture</h3>
+            <input
+              type="text"
+              placeholder="Paste image URL (e.g. [https://i.imgur.com/](https://i.imgur.com/)...)"
+              value={pfpInput}
+              onChange={(e) => setPfpInput(e.target.value)}
+              className="discord-input"
+            />
+            <div className="pfp-modal-actions">
+              <button onClick={() => setShowPfpModal(false)} className="btn-modal-cancel">
+                Cancel
+              </button>
+              <button onClick={saveProfilePicture} className="btn-modal-save">
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
