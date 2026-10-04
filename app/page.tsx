@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, ChangeEvent, FormEvent } from 'react';
 import { upload } from '@vercel/blob/client';
 
-// Configure users and customizable passwords here
+// Change user passwords and add new accounts here
 const USER_ACCOUNTS: Record<string, string> = {
   xalaxxi: '123456',
   Aa: '123456',
@@ -16,19 +16,17 @@ interface ChatMessage {
   username: string;
   text: string;
   attachmentUrl?: string;
-  attachmentType?: 'image' | 'video' | 'file';
+  attachmentType?: 'image' | 'video' | 'audio' | 'file';
   attachmentName?: string;
   timestamp: string;
 }
 
 export default function DiscordChat() {
-  // Auth state
   const [currentUser, setCurrentUser] = useState<string | null>(null);
   const [selectedUser, setSelectedUser] = useState<string>('xalaxxi');
   const [passwordInput, setPasswordInput] = useState<string>('');
   const [loginError, setLoginError] = useState<string | null>(null);
 
-  // Messaging state
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [text, setText] = useState<string>('');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -37,12 +35,10 @@ export default function DiscordChat() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Auto scroll to latest message
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  // Fetch chat history
   const fetchMessages = async () => {
     try {
       const res = await fetch('/api/messages', { cache: 'no-store' });
@@ -58,7 +54,7 @@ export default function DiscordChat() {
   useEffect(() => {
     if (currentUser) {
       fetchMessages();
-      const interval = setInterval(fetchMessages, 3000); // Poll every 3s
+      const interval = setInterval(fetchMessages, 2500);
       return () => clearInterval(interval);
     }
   }, [currentUser]);
@@ -75,7 +71,7 @@ export default function DiscordChat() {
     if (passwordInput === expectedPassword) {
       setCurrentUser(selectedUser);
     } else {
-      setLoginError('Invalid password. Default is 123456.');
+      setLoginError('Invalid password.');
     }
   };
 
@@ -85,9 +81,20 @@ export default function DiscordChat() {
     }
   };
 
-  const getAttachmentType = (file: File): 'image' | 'video' | 'file' => {
-    if (file.type.startsWith('image/')) return 'image';
-    if (file.type.startsWith('video/')) return 'video';
+  // Improved auto-detection for Images, Videos, Audio, and general files
+  const getAttachmentType = (file: File): 'image' | 'video' | 'audio' | 'file' => {
+    const type = file.type.toLowerCase();
+    const ext = file.name.split('.').pop()?.toLowerCase() || '';
+
+    if (type.startsWith('image/') || ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(ext)) {
+      return 'image';
+    }
+    if (type.startsWith('video/') || ['mp4', 'webm', 'mov', 'mkv'].includes(ext)) {
+      return 'video';
+    }
+    if (type.startsWith('audio/') || ['mp3', 'wav', 'ogg', 'm4a'].includes(ext)) {
+      return 'audio';
+    }
     return 'file';
   };
 
@@ -97,7 +104,7 @@ export default function DiscordChat() {
 
     setIsUploading(true);
     let attachmentUrl = '';
-    let attachmentType: 'image' | 'video' | 'file' | undefined = undefined;
+    let attachmentType: 'image' | 'video' | 'audio' | 'file' | undefined = undefined;
     let attachmentName = '';
 
     try {
@@ -137,18 +144,18 @@ export default function DiscordChat() {
     }
   };
 
-  // Login Modal View
   if (!currentUser) {
     return (
       <div className="login-overlay">
+        <div className="liquid-glow-bg" />
         <form onSubmit={handleLogin} className="discord-login-card">
           <div className="login-header">
-            <h2>Welcome back!</h2>
-            <p>We're so excited to see you again!</p>
+            <h2>Welcome Back</h2>
+            <p className="subtitle">Liquid AMOLED Private Server</p>
           </div>
 
           <div className="input-group">
-            <label>SELECT ACCOUNT</label>
+            <label>ACCOUNT</label>
             <select
               value={selectedUser}
               onChange={(e) => setSelectedUser(e.target.value)}
@@ -168,7 +175,7 @@ export default function DiscordChat() {
               type="password"
               value={passwordInput}
               onChange={(e) => setPasswordInput(e.target.value)}
-              placeholder="Enter password"
+              placeholder="Enter account password"
               className="discord-input"
               required
             />
@@ -184,13 +191,12 @@ export default function DiscordChat() {
     );
   }
 
-  // Main Discord UI
   return (
     <div className="discord-app">
-      {/* Discord Left Sidebar */}
       <aside className="discord-sidebar">
         <div className="server-header">
-          <span className="server-name">Private Server</span>
+          <span className="liquid-badge" />
+          <span className="server-name">Private Vault</span>
         </div>
 
         <div className="channel-list">
@@ -215,15 +221,12 @@ export default function DiscordChat() {
         </div>
       </aside>
 
-      {/* Main Chat Area */}
       <main className="discord-chat-container">
-        {/* Top Channel Bar */}
         <header className="channel-bar">
           <span className="hash">#</span>
           <span className="channel-title">general</span>
         </header>
 
-        {/* Message Feed */}
         <div className="messages-feed">
           {messages.map((msg) => (
             <div key={msg.id} className="message-row">
@@ -248,6 +251,10 @@ export default function DiscordChat() {
                       <video src={msg.attachmentUrl} controls className="attached-media" />
                     )}
 
+                    {msg.attachmentType === 'audio' && (
+                      <audio src={msg.attachmentUrl} controls className="attached-audio" />
+                    )}
+
                     {msg.attachmentType === 'file' && (
                       <a href={msg.attachmentUrl} target="_blank" rel="noopener noreferrer" className="file-attachment-link">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -265,7 +272,6 @@ export default function DiscordChat() {
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Message Input Box */}
         <form onSubmit={handleSendMessage} className="chat-input-wrapper">
           {selectedFile && (
             <div className="file-preview-strip">
@@ -292,13 +298,13 @@ export default function DiscordChat() {
               type="text"
               value={text}
               onChange={(e) => setText(e.target.value)}
-              placeholder={`Message #general...`}
+              placeholder="Message #general..."
               className="chat-text-input"
               disabled={isUploading}
             />
 
             <button type="submit" disabled={isUploading || (!text.trim() && !selectedFile)} className="btn-send">
-              {isUploading ? 'Sending...' : 'Send'}
+              {isUploading ? 'Uploading...' : 'Send'}
             </button>
           </div>
         </form>
