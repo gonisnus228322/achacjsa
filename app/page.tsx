@@ -4,10 +4,10 @@ import { useState, useEffect, useRef, ChangeEvent, FormEvent } from 'react';
 import { upload } from '@vercel/blob/client';
 
 const USER_ACCOUNTS: Record<string, string> = {
-  xalaxxi: '1459',
-  Aa: '228322',
-  betterthanmc: 'mc',
-  coolboy: 'cool',
+  xalaxxi: '123456',
+  Aa: '123456',
+  betterthanmc: '123456',
+  coolboy: '123456',
 };
 
 interface ChatMessage {
@@ -49,8 +49,16 @@ export default function DiscordChat() {
     try {
       const res = await fetch('/api/messages', { cache: 'no-store' });
       if (res.ok) {
-        const data = await res.json();
-        setMessages(data);
+        const data: ChatMessage[] = await res.json();
+        if (Array.isArray(data)) {
+          setMessages((prev) => {
+            const map = new Map(prev.map((m) => [m.id, m]));
+            data.forEach((m) => map.set(m.id, m));
+            return Array.from(map.values()).sort(
+              (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+            );
+          });
+        }
       }
     } catch (err) {
       console.error('Failed to load messages:', err);
@@ -60,7 +68,7 @@ export default function DiscordChat() {
   useEffect(() => {
     if (currentUser) {
       fetchMessages();
-      const interval = setInterval(fetchMessages, 2000);
+      const interval = setInterval(fetchMessages, 1000);
       return () => clearInterval(interval);
     }
   }, [currentUser]);
@@ -119,7 +127,6 @@ export default function DiscordChat() {
         attachmentType = getAttachmentType(selectedFile);
         attachmentName = selectedFile.name;
 
-        // Cast options to bypass type check for onUploadProgress in older package definitions
         const blob = await upload(selectedFile.name, selectedFile, {
           access: 'public',
           handleUploadUrl: '/api/upload',
@@ -147,10 +154,11 @@ export default function DiscordChat() {
       });
 
       if (res.ok) {
+        const savedMsg: ChatMessage = await res.json();
+        setMessages((prev) => [...prev.filter((m) => m.id !== savedMsg.id), savedMsg]);
         setText('');
         setSelectedFile(null);
         if (fileInputRef.current) fileInputRef.current.value = '';
-        await fetchMessages();
       }
     } catch {
       alert('Upload failed. Please check network and try again.');
@@ -161,13 +169,11 @@ export default function DiscordChat() {
   };
 
   const handleDeleteMessage = async (id: string) => {
+    setMessages((prev) => prev.filter((msg) => msg.id !== id));
     try {
-      const res = await fetch(`/api/messages?id=${id}`, {
+      await fetch(`/api/messages?id=${id}`, {
         method: 'DELETE',
       });
-      if (res.ok) {
-        setMessages((prev) => prev.filter((msg) => msg.id !== id));
-      }
     } catch {
       alert('Could not delete message.');
     }
@@ -184,15 +190,10 @@ export default function DiscordChat() {
   if (!currentUser) {
     return (
       <div className="login-overlay">
-        <div className="liquid-bg-container">
-          <div className="liquid-orb-1" />
-          <div className="liquid-orb-2" />
-        </div>
-
         <form onSubmit={handleLogin} className="discord-login-card">
           <div className="login-header">
             <h2>Welcome Back</h2>
-            <p className="subtitle">Private Dark Blue Vault</p>
+            <p className="subtitle">Private Vault Login</p>
           </div>
 
           <div className="input-group">
@@ -216,7 +217,7 @@ export default function DiscordChat() {
               type="password"
               value={passwordInput}
               onChange={(e) => setPasswordInput(e.target.value)}
-              placeholder="Enter account password"
+              placeholder="Enter password"
               className="discord-input"
               required
             />
@@ -236,11 +237,6 @@ export default function DiscordChat() {
 
   return (
     <div className="discord-app">
-      <div className="liquid-bg-container">
-        <div className="liquid-orb-1" />
-        <div className="liquid-orb-2" />
-      </div>
-
       <aside className="discord-sidebar">
         <div className="server-header">
           <span className="liquid-badge" />
