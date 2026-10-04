@@ -119,13 +119,15 @@ export default function DiscordChat() {
         attachmentType = getAttachmentType(selectedFile);
         attachmentName = selectedFile.name;
 
+        // Cast options to bypass type check for onUploadProgress in older package definitions
         const blob = await upload(selectedFile.name, selectedFile, {
           access: 'public',
           handleUploadUrl: '/api/upload',
-          onUploadProgress: (progressEvent) => {
+          onUploadProgress: (progressEvent: { percentage: number }) => {
             setUploadProgress(Math.round(progressEvent.percentage));
           },
-        });
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } as any);
         attachmentUrl = blob.url;
       }
 
