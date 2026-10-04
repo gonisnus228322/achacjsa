@@ -4,10 +4,10 @@ import { useState, useEffect, useRef, ChangeEvent, FormEvent } from 'react';
 import { upload } from '@vercel/blob/client';
 
 const USER_ACCOUNTS: Record<string, string> = {
-  xalaxxi: '123456',
-  Aa: '123456',
-  betterthanmc: '123456',
-  coolboy: '123456',
+  xalaxxi: '1459',
+  Aa: '228322',
+  betterthanmc: 'mc',
+  coolboy: 'cool',
 };
 
 interface ChatMessage {
