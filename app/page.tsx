@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef, ChangeEvent, FormEvent } from 'react';
 import { upload } from '@vercel/blob/client';
 
-// Change user passwords and add new accounts here
 const USER_ACCOUNTS: Record<string, string> = {
   xalaxxi: '123456',
   Aa: '123456',
@@ -81,7 +80,6 @@ export default function DiscordChat() {
     }
   };
 
-  // Improved auto-detection for Images, Videos, Audio, and general files
   const getAttachmentType = (file: File): 'image' | 'video' | 'audio' | 'file' => {
     const type = file.type.toLowerCase();
     const ext = file.name.split('.').pop()?.toLowerCase() || '';
@@ -147,11 +145,15 @@ export default function DiscordChat() {
   if (!currentUser) {
     return (
       <div className="login-overlay">
-        <div className="liquid-glow-bg" />
+        <div className="liquid-bg-container">
+          <div className="liquid-orb-1" />
+          <div className="liquid-orb-2" />
+        </div>
+
         <form onSubmit={handleLogin} className="discord-login-card">
           <div className="login-header">
             <h2>Welcome Back</h2>
-            <p className="subtitle">Liquid AMOLED Private Server</p>
+            <p className="subtitle">Private Liquid Vault</p>
           </div>
 
           <div className="input-group">
@@ -193,6 +195,11 @@ export default function DiscordChat() {
 
   return (
     <div className="discord-app">
+      <div className="liquid-bg-container">
+        <div className="liquid-orb-1" />
+        <div className="liquid-orb-2" />
+      </div>
+
       <aside className="discord-sidebar">
         <div className="server-header">
           <span className="liquid-badge" />
@@ -212,7 +219,7 @@ export default function DiscordChat() {
             <span className="status-indicator">Online</span>
           </div>
           <button onClick={() => setCurrentUser(null)} className="btn-logout" title="Log Out">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
               <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
               <polyline points="16 17 21 12 16 7" />
               <line x1="21" y1="12" x2="9" y2="12" />
@@ -257,7 +264,7 @@ export default function DiscordChat() {
 
                     {msg.attachmentType === 'file' && (
                       <a href={msg.attachmentUrl} target="_blank" rel="noopener noreferrer" className="file-attachment-link">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                           <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z" />
                           <polyline points="13 2 13 9 20 9" />
                         </svg>
