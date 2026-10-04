@@ -1,28 +1,75 @@
-import { handleUpload, type HandleUploadBody } from '@vercel/blob/client';
 import { NextResponse } from 'next/server';
 
-export async function POST(request: Request): Promise<NextResponse> {
-  const body = (await request.json()) as HandleUploadBody;
+export interface ChatMessage {
+  id: string;
+  username: string;
+  text: string;
+  attachmentUrl?: string;
+  attachmentType?: 'image' | 'video' | 'audio' | 'file';
+  attachmentName?: string;
+  timestamp: string;
+}
 
+// Memory store initialized to empty
+let messages: ChatMessage[] = [];
+
+export async function GET() {
+  return NextResponse.json(messages);
+}
+
+export async function POST(request: Request) {
   try {
-    const jsonResponse = await handleUpload({
-      body,
-      request,
-      onBeforeGenerateToken: async () => {
-        return {
-          // Leaving allowedContentTypes empty allows ALL file types and extensions
-        };
-      },
-      onUploadCompleted: async ({ blob }) => {
-        console.log('Upload complete:', blob.url);
-      },
-    });
+    const body = await request.json();
+    const newMessage: ChatMessage = {
+      id: Date.now().toString(),
+      username: body.username || 'Anonymous',
+      text: body.text || '',
+      attachmentUrl: body.attachmentUrl,
+      attachmentType: body.attachmentType,
+      attachmentName: body.attachmentName,
+      timestamp: new Date().toISOString(),
+    };
 
-    return NextResponse.json(jsonResponse);
+    messages.push(newMessage);
+    return NextResponse.json(newMessage, { status: 201 });
   } catch (error) {
-    return NextResponse.json(
-      { error: (error as Error).message },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: 'Failed to save message' }, { status: 500 });
+  }
+}import { NextResponse } from 'next/server';
+
+export interface ChatMessage {
+  id: string;
+  username: string;
+  text: string;
+  attachmentUrl?: string;
+  attachmentType?: 'image' | 'video' | 'audio' | 'file';
+  attachmentName?: string;
+  timestamp: string;
+}
+
+// Memory store initialized to empty
+let messages: ChatMessage[] = [];
+
+export async function GET() {
+  return NextResponse.json(messages);
+}
+
+export async function POST(request: Request) {
+  try {
+    const body = await request.json();
+    const newMessage: ChatMessage = {
+      id: Date.now().toString(),
+      username: body.username || 'Anonymous',
+      text: body.text || '',
+      attachmentUrl: body.attachmentUrl,
+      attachmentType: body.attachmentType,
+      attachmentName: body.attachmentName,
+      timestamp: new Date().toISOString(),
+    };
+
+    messages.push(newMessage);
+    return NextResponse.json(newMessage, { status: 201 });
+  } catch (error) {
+    return NextResponse.json({ error: 'Failed to save message' }, { status: 500 });
   }
 }
