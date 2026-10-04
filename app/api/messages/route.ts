@@ -5,31 +5,24 @@ export interface ChatMessage {
   username: string;
   text: string;
   attachmentUrl?: string;
-  attachmentType?: 'image' | 'video' | 'file';
+  attachmentType?: 'image' | 'video' | 'audio' | 'file';
   attachmentName?: string;
   timestamp: string;
 }
 
-// In-memory message store (persists while server is running)
-let messages: ChatMessage[] = [
-  {
-    id: 'welcome-1',
-    username: 'xalaxxi',
-    text: 'Welcome to the private server! Feel free to share files, photos, or videos here.',
-    timestamp: new Date().toISOString(),
-  },
-];
+// Memory store initialized to empty
+let messages: ChatMessage[] = [];
 
 export async function GET() {
   return NextResponse.json(messages);
 }
 
-export async function POST(req: Request) {
+export async function POST(request: Request) {
   try {
-    const body = await req.json();
+    const body = await request.json();
     const newMessage: ChatMessage = {
       id: Date.now().toString(),
-      username: body.username,
+      username: body.username || 'Anonymous',
       text: body.text || '',
       attachmentUrl: body.attachmentUrl,
       attachmentType: body.attachmentType,
@@ -38,7 +31,7 @@ export async function POST(req: Request) {
     };
 
     messages.push(newMessage);
-    return NextResponse.json(newMessage);
+    return NextResponse.json(newMessage, { status: 201 });
   } catch (error) {
     return NextResponse.json({ error: 'Failed to save message' }, { status: 500 });
   }
