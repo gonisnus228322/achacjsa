@@ -27,16 +27,14 @@ export default function DiscordChat() {
   const [passwordInput, setPasswordInput] = useState<string>('');
   const [loginError, setLoginError] = useState<string | null>(null);
 
-  // User PFPs map
   const [userAvatars, setUserAvatars] = useState<Record<string, string>>({});
   const [showPfpModal, setShowPfpModal] = useState<boolean>(false);
   const [pfpInput, setPfpInput] = useState<string>('');
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [text, setText] = useState<string>('');
-  const [selectedFile, setSelectedFile] = useState<File null |>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
-  // Upload Progress State
   const [isUploading, setIsUploading] = useState<boolean>(false);
   const [uploadProgress, setUploadProgress] = useState<number>(0);
 
@@ -105,7 +103,6 @@ export default function DiscordChat() {
     return 'file';
   };
 
-  // Fast direct client upload with live percentage progress tracking
   const handleSendMessage = async (e: FormEvent) => {
     e.preventDefault();
     if (!text.trim() && !selectedFile) return;
@@ -122,7 +119,6 @@ export default function DiscordChat() {
         attachmentType = getAttachmentType(selectedFile);
         attachmentName = selectedFile.name;
 
-        // Vercel Blob client upload with progress listener
         const blob = await upload(selectedFile.name, selectedFile, {
           access: 'public',
           handleUploadUrl: '/api/upload',
@@ -154,7 +150,7 @@ export default function DiscordChat() {
         if (fileInputRef.current) fileInputRef.current.value = '';
         await fetchMessages();
       }
-    } catch (err) {
+    } catch {
       alert('Upload failed. Please check network and try again.');
     } finally {
       setIsUploading(false);
@@ -162,7 +158,6 @@ export default function DiscordChat() {
     }
   };
 
-  // Delete message function
   const handleDeleteMessage = async (id: string) => {
     try {
       const res = await fetch(`/api/messages?id=${id}`, {
@@ -325,7 +320,6 @@ export default function DiscordChat() {
                 )}
               </div>
 
-              {/* Delete Message Button */}
               <button
                 onClick={() => handleDeleteMessage(msg.id)}
                 className="btn-delete-msg"
@@ -339,7 +333,6 @@ export default function DiscordChat() {
         </div>
 
         <form onSubmit={handleSendMessage} className="chat-input-wrapper">
-          {/* Upload Progress Bar */}
           {isUploading && (
             <div className="upload-progress-container">
               <div className="upload-progress-header">
@@ -389,14 +382,13 @@ export default function DiscordChat() {
         </form>
       </main>
 
-      {/* Change Profile Picture Modal */}
       {showPfpModal && (
         <div className="modal-overlay">
           <div className="pfp-modal">
             <h3>Change Profile Picture</h3>
             <input
               type="text"
-              placeholder="Paste image URL (e.g. [https://i.imgur.com/](https://i.imgur.com/)...)"
+              placeholder="Paste image URL (e.g. https://i.imgur.com/...)"
               value={pfpInput}
               onChange={(e) => setPfpInput(e.target.value)}
               className="discord-input"
