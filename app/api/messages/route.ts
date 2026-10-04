@@ -23,57 +23,6 @@ export async function POST(request: Request) {
     const newMessage: ChatMessage = {
       id: Date.now().toString(),
       username: body.username || 'Anonymous',
-      avatarUrl: body.avatarUrl || undefined,
-      text: body.text || '',
-      attachmentUrl: body.attachmentUrl,
-      attachmentType: body.attachmentType,
-      attachmentName: body.attachmentName,
-      timestamp: new Date().toISOString(),
-    };
-
-    messages.push(newMessage);
-    return NextResponse.json(newMessage, { status: 201 });
-  } catch (error) {
-    return NextResponse.json({ error: 'Failed to save message' }, { status: 500 });
-  }
-}
-
-export async function DELETE(request: Request) {
-  try {
-    const { searchHere is the updated code adding message deletion, a deep dark blue / electric blue UI theme, custom avatar / profile picture changing, and a real-time upload progress bar with direct client uploading for faster transfers.
-
----
-
-### 1. `app/api/messages/route.ts` (Supports Message Deletion)
-
-This route supports `GET`, `POST`, and `DELETE` requests so messages can be removed from memory.
-
-```typescript
-import { NextResponse } from 'next/server';
-
-export interface ChatMessage {
-  id: string;
-  username: string;
-  avatarUrl?: string;
-  text: string;
-  attachmentUrl?: string;
-  attachmentType?: 'image' | 'video' | 'audio' | 'file';
-  attachmentName?: string;
-  timestamp: string;
-}
-
-let messages: ChatMessage[] = [];
-
-export async function GET() {
-  return NextResponse.json(messages);
-}
-
-export async function POST(request: Request) {
-  try {
-    const body = await request.json();
-    const newMessage: ChatMessage = {
-      id: Date.now().toString(),
-      username: body.username || 'Anonymous',
       avatarUrl: body.avatarUrl || '',
       text: body.text || '',
       attachmentUrl: body.attachmentUrl,
